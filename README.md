@@ -6,9 +6,29 @@ This projects allows you to extract channel state information (CSI) of OFDM-modu
 Wi-Fi frames (802.11a/(g)/n/ac) on a per frame basis with up to 80 MHz bandwidth 
 using BCM4339 Wi-Fi chips installed, for example, in Nexus 5 smartphones. 
 
+After following the getting stated guide below, you can do the following to capture
+raw CSI data on a per frame basis. As the extraction of CSI information takes some
+time, we install a filter that compares the first 16 bytes of a Wi-Fi frame. In our
+example, we consider beacon frames from an access point with MAC address 
+`00:11:22:33:44:55`, running on Wi-Fi channel 100 with a bandwidth of 20 MHz: `64d0`.
+By using a channel in the 5 GHz band, we make sure that it uses OFDM-modulated frames.
+
+The following command can be used to prepare a base64-encoded payload for ioctl 500 to
+set the channel, activate CSI extraction and set the frame filter:
 ```
 echo "64d0010080000000ffffffffffff001122334455" | xxd -r -p | base64
 ```
+We can then send the resulting string to our patched Wi-Fi firmware:
+```
+nexutil -s500 -l20 -b -vZNABAIAAAAD///////8AESIzRFU=
+```
+After activating monitor mode, we can capture the filtered frames, followed by a 
+broadcasted UDP frame that includes the CSI information:
+```
+nexutil -m1
+tcpdump -i wlan0 -xxx
+```
+Soon, we will publish a MATLAB script to analyze those raw CSI dumps.
 
 # Extract from our License
 
