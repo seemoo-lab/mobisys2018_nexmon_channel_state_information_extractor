@@ -1,0 +1,318 @@
+--- ../gen/ucode.asm	2018-03-12 23:32:43.152016700 +0100
++++ ucode.asm	2018-03-12 23:32:50.777878856 +0100
+@@ -3,0 +4,37 @@
++#include "../include/macros.inc"
++#define phy_reg_read_to_shm(addr,target) \
++ mov addr, r33 \
++ calls L52 \
++ or SPR_Ext_IHR_Data, 0x0, [target]
++#define phy_reg_write(addr,value) \
++ mov addr, r33 \
++ mov value, r34 \
++ calls L54
++#define RX_HDR_LEN 32
++#define RX_HDR_BASE 0x8c0
++#define RX_HDR_OFFSET(off) (RX_HDR_BASE + off)
++#define RX_HDR_RxFrameSize RX_HDR_OFFSET(0)
++#define RX_HDR_NexmonExt RX_HDR_OFFSET(1)
++#define RX_HDR_PhyRxStatus_0 RX_HDR_OFFSET(2)
++#define RX_HDR_PhyRxStatus_1 RX_HDR_OFFSET(3)
++#define RX_HDR_PhyRxStatus_2 RX_HDR_OFFSET(4)
++#define RX_HDR_PhyRxStatus_3 RX_HDR_OFFSET(5)
++#define RX_HDR_PhyRxStatus_4 RX_HDR_OFFSET(6)
++#define RX_HDR_PhyRxStatus_5 RX_HDR_OFFSET(7)
++#define RX_HDR_RxStatus1 RX_HDR_OFFSET(8)
++#define RX_HDR_RxStatus2 RX_HDR_OFFSET(9)
++#define RX_HDR_RxTSFTime RX_HDR_OFFSET(10)
++#define RX_HDR_RxChan RX_HDR_OFFSET(11)
++#define RX_HDR_NEXMON_SrcMac0 RX_HDR_OFFSET(12)
++#define RX_HDR_NEXMON_SrcMac1 RX_HDR_OFFSET(13)
++#define RX_HDR_NEXMON_SrcMac2 RX_HDR_OFFSET(14)
++#define SHM_CSI_COLLECT 0x8b0
++#define SHM_CSI_COPIED 0x8b1
++#define CMP_FRM_CTRL_FLD 0x8b2
++#define CMP_DURATION 0x8b3
++#define CMP_DST_MAC_0 0x8b4
++#define CMP_DST_MAC_1 0x8b5
++#define CMP_DST_MAC_2 0x8b6
++#define CMP_SRC_MAC_0 0x8b7
++#define CMP_SRC_MAC_1 0x8b8
++#define CMP_SRC_MAC_2 0x8b9
+@@ -2708,0 +2746 @@
++ mov 0, [SHM_CSI_COPIED]
+@@ -2853,0 +2892,222 @@
++#define SPIN_LENGTH (6 + 16)
++#define SPARE1 r54
++spin_rx_header:
++ jext COND_RX_COMPLETE, spin_rx_end
++ jl SPR_RXE_FRAMELEN, SPIN_LENGTH, spin_rx_header
++spin_rx_end:
++ jl SPR_RXE_FRAMELEN, SPIN_LENGTH, skip+
++ mov 0, r55
++ mov [CMP_FRM_CTRL_FLD], SPARE1
++ jne [3,off1], SPARE1, skip+
++ mov [CMP_DURATION], SPARE1
++ jne [4,off1], SPARE1, skip+
++ mov [CMP_DST_MAC_0], SPARE1
++ jne [5,off1], SPARE1, skip+
++ mov [CMP_DST_MAC_1], SPARE1
++ jne [6,off1], SPARE1, skip+
++ mov [CMP_DST_MAC_2], SPARE1
++ jne [7,off1], SPARE1, skip+
++ mov [CMP_SRC_MAC_0], SPARE1
++ jne [8,off1], SPARE1, skip+
++ mov [CMP_SRC_MAC_1], SPARE1
++ jne [9,off1], SPARE1, skip+
++ mov [CMP_SRC_MAC_2], SPARE1
++ jne [10,off1], SPARE1, skip+
++ mov 1, r55
++ jext COND_RX_COMPLETE, skip+
++ jne [SHM_CSI_COLLECT], 1, skip+
++ and SPR_RXE_PHYRXSTAT0, 0x3, SPARE1
++ jne r23, 0x0, localskip+
++ add [0x8bd], 1, [0x8bd]
++localskip:
++ jne r23, 0x1, localskip+
++ add [0x8be], 1, [0x8be]
++localskip:
++ jne r23, 0x2, localskip+
++ add [0x8bf], 1, [0x8bf]
++localskip:
++ or [8,off1], 0x0, [RX_HDR_NEXMON_SrcMac0]
++ or [9,off1], 0x0, [RX_HDR_NEXMON_SrcMac1]
++ or [10,off1], 0x0, [RX_HDR_NEXMON_SrcMac2]
++ je r23, 0x0, skip+
++ mov RX_HDR_BASE + RX_HDR_LEN, SPARE1
++ mov RX_HDR_BASE + (17 * RX_HDR_LEN), SPR_BASE5
++erase_hdr:
++ mov 0x0, [0x00,off5]
++ sub SPR_BASE5, 0x1, SPR_BASE5
++ jges SPR_BASE5, SPARE1, erase_hdr-
++ phy_reg_write(0x00d,73)
++ mov 0, SPARE1
++ mov (RX_HDR_BASE + RX_HDR_LEN), SPR_BASE5
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 15, repeat-
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 30, repeat-
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 45, repeat-
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 60, repeat-
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 75, repeat-
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 90, repeat-
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 105, repeat-
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 120, repeat-
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 135, repeat-
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 150, repeat-
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 165, repeat-
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 180, repeat-
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 195, repeat-
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 210, repeat-
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 225, repeat-
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 240, repeat-
++ or 2, 0x0, [0, off5]
++ or 15, 0x0, [1, off5]
++ add SPR_BASE5, 2, SPR_BASE5
++repeat:
++ phy_reg_write(0x00e, SPARE1)
++ phy_reg_read_to_shm_off(0x00f, 0, off5)
++ phy_reg_read_to_shm_off(0x010, 1, off5)
++ add SPR_BASE5, 2, SPR_BASE5
++ add SPARE1, 1, SPARE1
++ jl SPARE1, 255, repeat-
++ mov 1, [SHM_CSI_COPIED]
++skip:
+@@ -3491,0 +3752 @@
++ je r55, 1, skip+
+@@ -3492,0 +3754,3 @@
++ jne [SHM_CSI_COLLECT], 1, skip+
++ jmp L720
++skip:
+@@ -3530,0 +3795,40 @@
++ mov RX_HDR_BASE, SPR_RXE_RXHDR_OFFSET
++ or 0, 0x0, [SHM(0x1182)]
++ jne [SHM_CSI_COPIED], 1, skip+
++ or 17, 0x0, [SHM(0x1182)]
++skip:
++ calls L798
++ jne [SHM_CSI_COPIED], 1, skip+
++ mov RX_HDR_BASE + RX_HDR_LEN, SPR_RXE_RXHDR_OFFSET
++ calls L798
++ mov RX_HDR_BASE + (2 * RX_HDR_LEN), SPR_RXE_RXHDR_OFFSET
++ calls L798
++ mov RX_HDR_BASE + (3 * RX_HDR_LEN), SPR_RXE_RXHDR_OFFSET
++ calls L798
++ mov RX_HDR_BASE + (4 * RX_HDR_LEN), SPR_RXE_RXHDR_OFFSET
++ calls L798
++ mov RX_HDR_BASE + (5 * RX_HDR_LEN), SPR_RXE_RXHDR_OFFSET
++ calls L798
++ mov RX_HDR_BASE + (6 * RX_HDR_LEN), SPR_RXE_RXHDR_OFFSET
++ calls L798
++ mov RX_HDR_BASE + (7 * RX_HDR_LEN), SPR_RXE_RXHDR_OFFSET
++ calls L798
++ mov RX_HDR_BASE + (8 * RX_HDR_LEN), SPR_RXE_RXHDR_OFFSET
++ calls L798
++ mov RX_HDR_BASE + (9 * RX_HDR_LEN), SPR_RXE_RXHDR_OFFSET
++ calls L798
++ mov RX_HDR_BASE + (10 * RX_HDR_LEN), SPR_RXE_RXHDR_OFFSET
++ calls L798
++ mov RX_HDR_BASE + (11 * RX_HDR_LEN), SPR_RXE_RXHDR_OFFSET
++ calls L798
++ mov RX_HDR_BASE + (12 * RX_HDR_LEN), SPR_RXE_RXHDR_OFFSET
++ calls L798
++ mov RX_HDR_BASE + (13 * RX_HDR_LEN), SPR_RXE_RXHDR_OFFSET
++ calls L798
++ mov RX_HDR_BASE + (14 * RX_HDR_LEN), SPR_RXE_RXHDR_OFFSET
++ calls L798
++ mov RX_HDR_BASE + (15 * RX_HDR_LEN), SPR_RXE_RXHDR_OFFSET
++ calls L798
++ mov RX_HDR_BASE + (16 * RX_HDR_LEN), SPR_RXE_RXHDR_OFFSET
++ calls L798
++ mov RX_HDR_BASE + (17 * RX_HDR_LEN), SPR_RXE_RXHDR_OFFSET
+@@ -3531,0 +3836 @@
++skip:
+@@ -4474,2 +4779 @@
+- mov 0x840, SPR_RXE_RXHDR_OFFSET
+- mov 0xE, SPR_RXE_RXHDR_LEN
++ mov RX_HDR_LEN, SPR_RXE_RXHDR_LEN
