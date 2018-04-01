@@ -28,7 +28,12 @@ broadcasted UDP frame that includes the CSI information:
 nexutil -m1
 tcpdump -i wlan0 -xxx
 ```
-Soon, we will publish a MATLAB script to analyze those raw CSI dumps.
+To analyze the dumped CSI information, we provide some MATLAB functions in the 
+`matlab` directory. They rely on reading dumped CSI information from pcap files
+created using tcpdump. As an example, we provide the captures created for our
+MobiSys 2018 paper. The result looks as follows:
+
+![SEEMOO logo](https://raw.githubusercontent.com/seemoo-lab/mobisys2018_nexmon_channel_state_information_extractor/master/matlab/result.png)
 
 # Extract from our License
 
