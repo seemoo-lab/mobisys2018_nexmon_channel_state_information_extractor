@@ -14,9 +14,11 @@ example, we consider beacon frames from an access point with MAC address
 By using a channel in the 5 GHz band, we make sure that it uses OFDM-modulated frames.
 
 The following command can be used to prepare a base64-encoded payload for ioctl 500 to
-set the channel, activate CSI extraction and set the frame filter:
+set the channel, activate CSI extraction and set the frame filter (the 2 bytes channel 
+specification needs to be flipped):
+
 ```
-echo "64d0010080000000ffffffffffff001122334455" | xxd -r -p | base64
+echo "d064010080000000ffffffffffff001122334455" | xxd -r -p | base64
 ```
 We can then send the resulting string to our patched Wi-Fi firmware:
 ```
