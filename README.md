@@ -4,7 +4,12 @@
 
 This projects allows you to extract channel state information (CSI) of OFDM-modulated
 Wi-Fi frames (802.11a/(g)/n/ac) on a per frame basis with up to 80 MHz bandwidth 
-using BCM4339 Wi-Fi chips installed, for example, in Nexus 5 smartphones. 
+using BCM4339 Wi-Fi chips installed, for example, in Nexus 5 smartphones.
+
+**We released a new version of our CSI Extractor that also works with Nexus 5 and
+Nexus 6P smartphones, Raspberry Pi 3B+ and 4, as well as Asus RT-AC86U routers with
+up to 4x4 MIMO and 80 MHz bandwidth. Find out more at: https://nexmon.org/csi**
+
 
 After following the getting stated guide below, you can do the following to capture
 raw CSI data on a per frame basis. As the extraction of CSI information takes some
